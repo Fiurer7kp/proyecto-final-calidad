@@ -5,7 +5,14 @@ import * as THREE from "three";
 export default function ThreeDemoView() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const cubeRef = useRef<THREE.Mesh | null>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const [supported, setSupported] = useState(true);
+  const [shape, setShape] = useState<
+    "cubo" | "esfera" | "cono" | "torus" | "plano" | "tetra"
+  >("cubo");
+  const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     if (!stageRef.current) return;
@@ -30,9 +37,11 @@ export default function ThreeDemoView() {
     renderer.setSize(stage.clientWidth, stage.clientHeight);
     renderer.setClearColor(0xf8fafc, 1); // slate-50-like
     stage.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
 
     // Scene & Camera
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
     const camera = new THREE.PerspectiveCamera(
       50,
       stage.clientWidth / stage.clientHeight,
@@ -41,6 +50,7 @@ export default function ThreeDemoView() {
     );
     camera.position.set(2.5, 2.0, 3.0);
     camera.lookAt(0, 0, 0);
+    cameraRef.current = camera;
 
     // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -48,20 +58,45 @@ export default function ThreeDemoView() {
     dir.position.set(5, 5, 5);
     scene.add(dir);
 
-    // Cube
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x22c55e });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.position.y = 0.4;
-    cubeRef.current = cube;
-    scene.add(cube);
+    // Initial Mesh
+    const createMesh = (kind: typeof shape): THREE.Mesh => {
+      let geo: THREE.BufferGeometry;
+      switch (kind) {
+        case "esfera":
+          geo = new THREE.SphereGeometry(0.7, 32, 16);
+          break;
+        case "cono":
+          geo = new THREE.ConeGeometry(0.7, 1.2, 24);
+          break;
+        case "torus":
+          geo = new THREE.TorusGeometry(0.6, 0.2, 16, 100);
+          break;
+        case "plano":
+          geo = new THREE.PlaneGeometry(1.6, 1.0);
+          break;
+        case "tetra":
+          geo = new THREE.TetrahedronGeometry(0.9, 0);
+          break;
+        default:
+          geo = new THREE.BoxGeometry(1, 1, 1);
+      }
+      const mat = new THREE.MeshStandardMaterial({ color: 0x22c55e });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.4;
+      return mesh;
+    };
+
+    const current = createMesh(shape);
+    cubeRef.current = current;
+    scene.add(current);
 
     // Animation loop
     let running = true;
     const animate = () => {
       if (!running) return;
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.015;
+      const s = Math.max(0, Math.min(3, speed));
+      current.rotation.x += 0.008 * s;
+      current.rotation.y += 0.012 * s;
       renderer!.render(scene, camera);
       requestAnimationFrame(animate);
     };
@@ -98,6 +133,41 @@ export default function ThreeDemoView() {
       (cubeRef.current.material as THREE.MeshStandardMaterial).color.set(color);
   };
 
+  const replaceShape = (kind: typeof shape) => {
+    setShape(kind);
+    const scene = sceneRef.current;
+    if (!scene) return;
+    if (cubeRef.current) {
+      scene.remove(cubeRef.current);
+      (cubeRef.current.geometry as THREE.BufferGeometry).dispose();
+    }
+    let geo: THREE.BufferGeometry;
+    switch (kind) {
+      case "esfera":
+        geo = new THREE.SphereGeometry(0.7, 32, 16);
+        break;
+      case "cono":
+        geo = new THREE.ConeGeometry(0.7, 1.2, 24);
+        break;
+      case "torus":
+        geo = new THREE.TorusGeometry(0.6, 0.2, 16, 100);
+        break;
+      case "plano":
+        geo = new THREE.PlaneGeometry(1.6, 1.0);
+        break;
+      case "tetra":
+        geo = new THREE.TetrahedronGeometry(0.9, 0);
+        break;
+      default:
+        geo = new THREE.BoxGeometry(1, 1, 1);
+    }
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22c55e });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.y = 0.4;
+    cubeRef.current = mesh;
+    scene.add(mesh);
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -126,6 +196,33 @@ export default function ThreeDemoView() {
         >
           Random
         </button>
+        <div className="ml-4 flex items-center gap-2">
+          <label className="text-slate-700 dark:text-slate-200">Velocidad</label>
+          <input type="range" min={0} max={3} step={0.1} value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} />
+        </div>
+      </div>
+
+      {/* Shape selector */}
+      <div className="flex flex-wrap items-center gap-2">
+        {[
+          ["cubo", "Cubo"],
+          ["esfera", "Esfera"],
+          ["cono", "Cono"],
+          ["torus", "Toro"],
+          ["plano", "Plano"],
+          ["tetra", "Tetra"],
+        ].map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => replaceShape(k as typeof shape)}
+            className={
+              "px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 " +
+              (shape === k ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "hover:bg-slate-50 dark:hover:bg-slate-800")
+            }
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Canvas container */}

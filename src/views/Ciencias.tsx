@@ -6,7 +6,7 @@ const Ciencias: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto p-2">
       <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-4">🌿 Ciencias Naturales</h1>
-      <p className="text-slate-600 dark:text-slate-300 mb-6">Explora formas en 3D y mira un video corto sobre el ciclo del agua.</p>
+      <p className="text-slate-600 dark:text-slate-300 mb-6">Explora formas en 3D (cubo, esfera, cono, toro, plano y tetraedro), cambia su color y mira un video corto.</p>
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-3">
